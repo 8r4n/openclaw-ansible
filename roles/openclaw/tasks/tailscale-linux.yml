@@ -1,7 +1,9 @@
 ---
-# Linux-specific Tailscale installation (Debian/Ubuntu)
+# Linux-specific Tailscale installation
 
-- name: Add Tailscale GPG key
+# --- Debian/Ubuntu (apt-based) ---
+
+- name: Add Tailscale GPG key (Debian/Ubuntu)
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -11,8 +13,9 @@
         tee /usr/share/keyrings/tailscale-archive-keyring.gpg > /dev/null
     creates: /usr/share/keyrings/tailscale-archive-keyring.gpg
     executable: /bin/bash
+  when: ansible_os_family == 'Debian'
 
-- name: Add Tailscale repository
+- name: Add Tailscale repository (Debian/Ubuntu)
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -22,15 +25,35 @@
         tee /etc/apt/sources.list.d/tailscale.list > /dev/null
     creates: /etc/apt/sources.list.d/tailscale.list
     executable: /bin/bash
+  when: ansible_os_family == 'Debian'
 
-- name: Update apt cache after adding Tailscale repo
+- name: Update apt cache after adding Tailscale repo (Debian/Ubuntu)
   ansible.builtin.apt:
     update_cache: true
+  when: ansible_os_family == 'Debian'
 
-- name: Install Tailscale
+- name: Install Tailscale (Debian/Ubuntu)
   ansible.builtin.apt:
     name: tailscale
     state: present
+  when: ansible_os_family == 'Debian'
+
+# --- Fedora (dnf-based) ---
+
+- name: Add Tailscale repository (Fedora)
+  ansible.builtin.get_url:
+    url: https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+    dest: /etc/yum.repos.d/tailscale.repo
+    mode: '0644'
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Tailscale (Fedora)
+  ansible.builtin.dnf:
+    name: tailscale
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+# --- Common ---
 
 - name: Enable Tailscale service (Linux)
   ansible.builtin.systemd:

@@ -18,8 +18,9 @@
 
     - name: Detect operating system
       ansible.builtin.set_fact:
-        is_linux: "{{ ansible_os_family == 'Debian' }}"
+        is_linux: "{{ ansible_os_family in ['Debian', 'RedHat'] }}"
         is_debian: "{{ ansible_distribution in ['Debian', 'Ubuntu'] }}"
+        is_fedora: "{{ ansible_distribution == 'Fedora' }}"
 
     - name: Fail on unsupported macOS
       ansible.builtin.fail:
@@ -35,6 +36,7 @@
           Detected OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
           OS Family: {{ ansible_os_family }}
           Linux (Debian/Ubuntu): {{ is_debian }}
+          Linux (Fedora): {{ is_fedora }}
 
     - name: Update apt cache and upgrade all packages (Debian/Ubuntu)
       ansible.builtin.apt:
@@ -48,6 +50,13 @@
       ansible.builtin.debug:
         msg: "✅ System packages updated and upgraded"
       when: is_debian and apt_upgrade_result.changed
+
+    - name: Update dnf cache and upgrade all packages (Fedora)
+      ansible.builtin.dnf:
+        update_cache: true
+        name: "*"
+        state: latest
+      when: is_fedora and not ci_test
 
     - name: Install ACL for privilege escalation
       ansible.builtin.package:

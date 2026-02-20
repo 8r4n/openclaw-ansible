@@ -33,9 +33,13 @@ echo ""
 # Detect operating system
 if command -v apt-get &> /dev/null; then
     echo -e "${GREEN}✓ Detected: Debian/Ubuntu Linux${NC}"
+    PKG_MANAGER="apt"
+elif command -v dnf &> /dev/null; then
+    echo -e "${GREEN}✓ Detected: Fedora Linux${NC}"
+    PKG_MANAGER="dnf"
 else
     echo -e "${RED}✗ Error: Unsupported operating system${NC}"
-    echo -e "${RED}  This installer supports: Debian/Ubuntu Linux only${NC}"
+    echo -e "${RED}  This installer supports: Debian/Ubuntu/Fedora Linux only${NC}"
     exit 1
 fi
 
@@ -58,8 +62,12 @@ echo -e "${GREEN}[1/4] Checking prerequisites...${NC}"
 # Check if Ansible is installed
 if ! command -v ansible-playbook &> /dev/null; then
     echo -e "${YELLOW}Ansible not found. Installing...${NC}"
-    $SUDO apt-get update -qq
-    $SUDO apt-get install -y ansible
+    if [ "$PKG_MANAGER" = "apt" ]; then
+        $SUDO apt-get update -qq
+        $SUDO apt-get install -y ansible
+    elif [ "$PKG_MANAGER" = "dnf" ]; then
+        $SUDO dnf install -y ansible
+    fi
     echo -e "${GREEN}✓ Ansible installed${NC}"
 else
     echo -e "${GREEN}✓ Ansible already installed${NC}"

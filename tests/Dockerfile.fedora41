@@ -1,0 +1,24 @@
+FROM fedora:41
+
+# Install Ansible and dependencies
+RUN dnf install -y \
+      ansible \
+      python3 \
+      sudo \
+      systemd \
+      git \
+      curl \
+      ca-certificates \
+      acl \
+      gnupg2 \
+    && dnf clean all
+
+# Copy project into container
+COPY . /opt/ansible
+WORKDIR /opt/ansible
+
+# Install Ansible Galaxy collections
+RUN ansible-galaxy collection install -r requirements.yml
+
+# Default: run the test entrypoint
+ENTRYPOINT ["bash", "tests/entrypoint.sh"]
