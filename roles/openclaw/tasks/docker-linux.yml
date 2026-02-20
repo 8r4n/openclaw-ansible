@@ -1,7 +1,9 @@
 ---
-# Linux-specific Docker installation (apt-based)
+# Linux-specific Docker installation
 
-- name: Install required system packages for Docker
+# --- Debian/Ubuntu (apt-based) ---
+
+- name: Install required system packages for Docker (Debian/Ubuntu)
   ansible.builtin.apt:
     name:
       - ca-certificates
@@ -10,14 +12,16 @@
       - lsb-release
     state: present
     update_cache: true
+  when: ansible_os_family == 'Debian'
 
-- name: Create directory for Docker GPG key
+- name: Create directory for Docker GPG key (Debian/Ubuntu)
   ansible.builtin.file:
     path: /etc/apt/keyrings
     state: directory
     mode: '0755'
+  when: ansible_os_family == 'Debian'
 
-- name: Add Docker GPG key
+- name: Add Docker GPG key (Debian/Ubuntu)
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -26,8 +30,9 @@
       chmod a+r /etc/apt/keyrings/docker.gpg
     creates: /etc/apt/keyrings/docker.gpg
     executable: /bin/bash
+  when: ansible_os_family == 'Debian'
 
-- name: Add Docker repository
+- name: Add Docker repository (Debian/Ubuntu)
   ansible.builtin.shell:
     cmd: |
       set -o pipefail
@@ -38,12 +43,14 @@
         tee /etc/apt/sources.list.d/docker.list > /dev/null
     creates: /etc/apt/sources.list.d/docker.list
     executable: /bin/bash
+  when: ansible_os_family == 'Debian'
 
-- name: Update apt cache after adding Docker repo
+- name: Update apt cache after adding Docker repo (Debian/Ubuntu)
   ansible.builtin.apt:
     update_cache: true
+  when: ansible_os_family == 'Debian'
 
-- name: Install Docker CE
+- name: Install Docker CE (Debian/Ubuntu)
   ansible.builtin.apt:
     name:
       - docker-ce
@@ -52,6 +59,35 @@
       - docker-buildx-plugin
       - docker-compose-plugin
     state: present
+  when: ansible_os_family == 'Debian'
+
+# --- Fedora (dnf-based) ---
+
+- name: Install dnf-plugins-core for config-manager (Fedora)
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Add Docker repository (Fedora)
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/fedora/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Docker CE (Fedora)
+  ansible.builtin.dnf:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+# --- Common ---
 
 - name: Ensure Docker service is started and enabled
   ansible.builtin.systemd:

@@ -2,11 +2,18 @@
 # Linux-specific firewall configuration (UFW) with security hardening
 
 # Install and configure fail2ban for SSH brute-force protection
-- name: Install fail2ban
+- name: Install fail2ban (Debian/Ubuntu)
   ansible.builtin.apt:
     name: fail2ban
     state: present
     update_cache: true
+  when: ansible_os_family == 'Debian'
+
+- name: Install fail2ban (Fedora)
+  ansible.builtin.dnf:
+    name: fail2ban
+    state: present
+  when: ansible_os_family == 'RedHat'
 
 - name: Configure fail2ban for SSH protection
   ansible.builtin.copy:
@@ -36,14 +43,15 @@
     enabled: true
 
 # Install and configure unattended-upgrades for automatic security updates
-- name: Install unattended-upgrades
+- name: Install unattended-upgrades (Debian/Ubuntu)
   ansible.builtin.apt:
     name:
       - unattended-upgrades
       - apt-listchanges
     state: present
+  when: ansible_os_family == 'Debian'
 
-- name: Configure automatic security updates
+- name: Configure automatic security updates (Debian/Ubuntu)
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades
     owner: root
@@ -53,8 +61,9 @@
       APT::Periodic::Update-Package-Lists "1";
       APT::Periodic::Unattended-Upgrade "1";
       APT::Periodic::AutocleanInterval "7";
+  when: ansible_os_family == 'Debian'
 
-- name: Configure unattended-upgrades to only install security updates
+- name: Configure unattended-upgrades to only install security updates (Debian/Ubuntu)
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
     owner: root
@@ -73,13 +82,47 @@
       Unattended-Upgrade::MinimalSteps "true";
       Unattended-Upgrade::Remove-Unused-Dependencies "true";
       Unattended-Upgrade::Automatic-Reboot "false";
+  when: ansible_os_family == 'Debian'
+
+- name: Install dnf-automatic for automatic security updates (Fedora)
+  ansible.builtin.dnf:
+    name: dnf-automatic
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Configure dnf-automatic for security-only updates (Fedora)
+  ansible.builtin.ini_file:
+    path: /etc/dnf/automatic.conf
+    section: commands
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: '0644'
+  loop:
+    - { option: 'upgrade_type', value: 'security' }
+    - { option: 'apply_updates', value: 'yes' }
+    - { option: 'reboot', value: 'never' }
+  when: ansible_os_family == 'RedHat'
+
+- name: Enable dnf-automatic timer (Fedora)
+  ansible.builtin.systemd:
+    name: dnf-automatic.timer
+    state: started
+    enabled: true
+  when: ansible_os_family == 'RedHat'
 
 # UFW Firewall configuration
-- name: Install UFW
+- name: Install UFW (Debian/Ubuntu)
   ansible.builtin.apt:
     name: ufw
     state: present
     update_cache: true
+  when: ansible_os_family == 'Debian'
+
+- name: Install UFW (Fedora)
+  ansible.builtin.dnf:
+    name: ufw
+    state: present
+  when: ansible_os_family == 'RedHat'
 
 - name: Set UFW default policies
   community.general.ufw:
